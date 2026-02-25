@@ -83,8 +83,13 @@ module.exports = {
 					`📝 **Result:** ${message.result}`
 				].join("\n");
 
-				const escapedMessage = app.Utils.escapeCharacters(messageText);
-				await telegram.send(escapedMessage);
+				if (message.award.icon) {
+					await telegram.sendPhoto(message.award.icon, messageText);
+				}
+				else {
+					const escapedMessage = app.Utils.escapeCharacters(messageText);
+					await telegram.send(escapedMessage);
+				}
 			}
 		}
 	})

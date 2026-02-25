@@ -112,15 +112,10 @@ RegionalTaskManager.registerTask("WeekliesReminder", 21, 0, async (account) => {
 
 	const telegram = app.Platform.get(2);
 	if (telegram) {
-		const message = [
+		const lines = [
 			"📅 **Weeklies Reminder**",
-			"",
-			"👤 **Account**",
-			`- **UID**: ${account.uid}`,
-			`- **Username**: ${account.nickname}`,
-			`- **Region**: ${app.HoyoLab.getRegion(account.region)}`,
-			"",
-			"📊 **Progress**"
+			`🆔 **UID**: ${account.uid} ${account.nickname}`,
+			`🌍 **Region**: ${app.HoyoLab.getRegion(account.region)}`
 		];
 
 		if (platform.type === "genshin") {
@@ -128,7 +123,7 @@ RegionalTaskManager.registerTask("WeekliesReminder", 21, 0, async (account) => {
 			const limit = weeklies.resinDiscountLimit;
 
 			if (resin !== 0) {
-				message.push(`- **Resin Discount**: ${resin}/${limit} Available`);
+				lines.push(`- **Resin Discount**: ${resin}/${limit} Available`);
 			}
 		}
 		if (platform.type === "starrail") {
@@ -140,13 +135,13 @@ RegionalTaskManager.registerTask("WeekliesReminder", 21, 0, async (account) => {
 			}
 
 			if (!bossCompleted) {
-				message.push(`- **Weekly Boss**: ${weeklies.weeklyBoss}/${weeklies.weeklyBossLimit} Completed`);
+				lines.push(`- **Weekly Boss**: ${weeklies.weeklyBoss}/${weeklies.weeklyBossLimit} Completed`);
 			}
 			if (!simCompleted) {
-				message.push(`- **Simulated Universe**: ${weeklies.rogueScore}/${weeklies.maxScore}`);
+				lines.push(`- **Simulated Universe**: ${weeklies.rogueScore}/${weeklies.maxScore}`);
 			}
 			if (!divergent) {
-				message.push(`- **Divergent Universe**: ${weeklies.tournScore}/${weeklies.tournMaxScore}`);
+				lines.push(`- **Divergent Universe**: ${weeklies.tournScore}/${weeklies.tournMaxScore}`);
 			}
 		}
 		if (platform.type === "nap") {
@@ -157,15 +152,18 @@ RegionalTaskManager.registerTask("WeekliesReminder", 21, 0, async (account) => {
 			}
 
 			if (!bountiesCompleted) {
-				message.push(`- **Bounty Commission**: ${weeklies.bounty}/${weeklies.bountyTotal}`);
+				lines.push(`- **Bounty Commission**: ${weeklies.bounty}/${weeklies.bountyTotal}`);
 			}
 			if (!surveyCompleted) {
-				message.push(`- **Survey Points**: ${weeklies.surveyPoints}/${weeklies.surveyPointsTotal}`);
+				lines.push(`- **Survey Points**: ${weeklies.surveyPoints}/${weeklies.surveyPointsTotal}`);
 			}
 		}
 
-		const escapedMessage = app.Utils.escapeCharacters(message.join("\n"));
-		await telegram.send(escapedMessage);
+		telegram.sendBuffered(lines.join("\n"), {
+			bufferKey: `${account.platform}-${account.uid}`,
+			gameLogo: data.assets.logo,
+			gameName: data.assets.game
+		});
 	}
 });
 

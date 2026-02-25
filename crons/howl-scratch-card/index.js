@@ -45,13 +45,16 @@ RegionalTaskManager.registerTask("HowlScratchCard", 21, 0, async (account) => {
 	const telegram = app.Platform.get(2);
 	if (telegram) {
 		const messageText = [
-			`${region} Server - ${account.nickname}`,
-			`📰 Howl's News Stand`,
-			`You haven't scratched the card at Howl's News Stand yet!`
+			`📰 **Howl's News Stand** - Not scratched yet!`,
+			`🆔 **UID**: ${account.uid} ${account.nickname}`,
+			`🌍 **Region**: ${region}`
 		].join("\n");
 
-		const escapedMessage = app.Utils.escapeCharacters(messageText);
-		await telegram.send(escapedMessage);
+		telegram.sendBuffered(messageText, {
+			bufferKey: `nap-${account.uid}`,
+			gameLogo: data.assets.logo,
+			gameName: data.assets.game
+		});
 	}
 });
 

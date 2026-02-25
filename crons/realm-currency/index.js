@@ -76,13 +76,17 @@ module.exports = {
 				const telegram = app.Platform.get(2);
 				if (telegram) {
 					const messageText = [
-						`💰 Realm Currency`,
-						`UID: ${account.uid} ${account.nickname}`,
-						`Your realm currency is full!`
+						`💰 **Realm Currency** - Full!`,
+						`🆔 **UID**: ${account.uid} ${account.nickname}`,
+						`🌍 **Region**: ${app.HoyoLab.getRegion(account.region)}`,
+						`Current: ${coins.currentCoin}/${coins.maxCoin}`
 					].join("\n");
 
-					const escapedMessage = app.Utils.escapeCharacters(messageText);
-					await telegram.send(escapedMessage);
+					telegram.sendBuffered(messageText, {
+						bufferKey: `genshin-${account.uid}`,
+						gameLogo: data.assets.logo,
+						gameName: data.assets.game
+					});
 				}
 			}
 		}

@@ -69,13 +69,17 @@ module.exports = {
 				const telegram = app.Platform.get(2);
 				if (telegram) {
 					const messageText = [
-						`🛒 Shop Status`,
-						`UID: ${account.uid} ${account.nickname}`,
+						`🛒 **Shop Status** - Finished!`,
+						`🆔 **UID**: ${account.uid} ${account.nickname}`,
+						`🌍 **Region**: ${region}`,
 						`Your shop has finished selling videos!`
 					].join("\n");
 
-					const escapedMessage = app.Utils.escapeCharacters(messageText);
-					await telegram.send(escapedMessage);
+					telegram.sendBuffered(messageText, {
+						bufferKey: `nap-${account.uid}`,
+						gameLogo: data.assets.logo,
+						gameName: data.assets.game
+					});
 				}
 			}
 		}

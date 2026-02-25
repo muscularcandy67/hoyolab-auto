@@ -55,16 +55,18 @@ RegionalTaskManager.registerTask("DailiesReminder", 21, 0, async (account) => {
 	const telegram = app.Platform.get(2);
 	if (telegram) {
 		const messageText = [
-			`📢 Dailies Reminder, Don't Forget to Do Your Dailies!`,
-			`🎮 **Game**: ${data.assets.game}`,
+			`📢 **Dailies Reminder** - Don't Forget to Do Your Dailies!`,
 			`🆔 **UID**: ${account.uid} ${account.nickname}`,
 			`🌍 **Region**: ${app.HoyoLab.getRegion(account.region)}`,
 			`📅 **Completed Dailies**: ${data.dailies.task}/${data.dailies.maxTask}`,
 			`🔋 **Current Stamina**: ${current}/${max} (${delta})`
 		].join("\n");
 
-		const escapedMessage = app.Utils.escapeCharacters(messageText);
-		await telegram.send(escapedMessage);
+		telegram.sendBuffered(messageText, {
+			bufferKey: `${account.platform}-${account.uid}`,
+			gameLogo: data.assets.logo,
+			gameName: data.assets.game
+		});
 	}
 });
 

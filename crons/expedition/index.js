@@ -75,13 +75,16 @@ module.exports = {
 				const telegram = app.Platform.get(2);
 				if (telegram) {
 					const messageText = [
-						`📢 Expedition Reminder, All Expeditions are Completed!`,
-						`🎮 **Game**: ${data.assets.game}`,
-						`🆔 **UID**: ${account.uid} ${account.nickname}`
+						`📢 **Expedition Reminder** - All Expeditions Completed!`,
+						`🆔 **UID**: ${account.uid} ${account.nickname}`,
+						`🌍 **Region**: ${app.HoyoLab.getRegion(account.region)}`
 					].join("\n");
 
-					const escapedMessage = app.Utils.escapeCharacters(messageText);
-					await telegram.send(escapedMessage);
+					telegram.sendBuffered(messageText, {
+						bufferKey: `${account.platform}-${account.uid}`,
+						gameLogo: data.assets.logo,
+						gameName: data.assets.game
+					});
 				}
 			}
 		}

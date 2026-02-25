@@ -41,6 +41,49 @@ module.exports = {
 							uid: account.uid,
 							error: result.message
 						});
+
+						const isCriticalError = result.message?.toLowerCase().includes("cookie")
+							|| result.message?.toLowerCase().includes("expired")
+							|| result.message?.toLowerCase().includes("login");
+
+						if (isCriticalError) {
+							const region = app.HoyoLab.getRegion(account.region);
+							const webhook = app.Platform.get(3);
+							if (webhook) {
+								const embed = {
+									color: 0xFF0000,
+									title: `🐾 Traveling Mimo Failure - ${account.game.name}`,
+									author: {
+										name: `${region} Server - ${account.nickname}`,
+										icon_url: account.assets?.logo
+									},
+									description: `**Automation Failed:** ${result.message}`,
+									timestamp: new Date(),
+									footer: {
+										text: "Traveling Mimo Automation",
+										icon_url: account.assets?.logo
+									}
+								};
+								await webhook.send(embed, {
+									content: webhook.createUserMention(account.discord),
+									author: account.assets?.author,
+									icon: account.assets?.logo
+								});
+							}
+
+							const telegram = app.Platform.get(2);
+							if (telegram) {
+								const messageText = [
+									`🐾 *Traveling Mimo Failure* - ${account.game.name}`,
+									`Region: ${region} | UID: ${account.uid}`,
+									`Player: ${account.nickname}`,
+									"",
+									`❌ *Error:* ${result.message}`
+								].join("\n");
+								const escapedMessage = app.Utils.escapeCharacters(messageText);
+								await telegram.send(escapedMessage);
+							}
+						}
 						continue;
 					}
 
@@ -50,7 +93,8 @@ module.exports = {
 						|| data.itemsExchanged.length > 0
 						|| data.codesRedeemed.length > 0
 						|| data.codesObtained?.length > 0
-						|| data.lotteryDraws?.length > 0;
+						|| data.lotteryDraws?.length > 0
+						|| data.errors?.length > 0;
 
 					if (!hasActivity) {
 						app.Logger.debug("Cron:Mimo", `(${account.uid}) ${account.game.short}: No new Mimo activity.`);
@@ -103,6 +147,14 @@ module.exports = {
 							fields.push({
 								name: "🎰 Lottery Draws",
 								value: data.lotteryDraws.map(d => `• ${d.name}`).join("\n").slice(0, 1024),
+								inline: false
+							});
+						}
+
+						if (data.errors?.length > 0) {
+							fields.push({
+								name: "❌ Errors",
+								value: data.errors.map(e => `• ${e}`).join("\n").slice(0, 1024),
 								inline: false
 							});
 						}
@@ -192,6 +244,13 @@ module.exports = {
 						}
 
 						if (data.lotteryDraws?.length > 0) { lines.push(`🎰 Lottery Draws: ${data.lotteryDraws.map(d => d.name).join(", ")}`); }
+
+						if (data.errors?.length > 0) {
+							lines.push(`❌ Errors:`);
+							for (const err of data.errors) {
+								lines.push(`  • ${err}`);
+							}
+						}
 						lines.push(`💎 Current Points: ${data.points}`);
 
 						const escapedMessage = app.Utils.escapeCharacters(lines.join("\n"));

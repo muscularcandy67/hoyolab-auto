@@ -121,7 +121,10 @@ module.exports = class TravelingMimo {
 				message: "Failed to fetch Mimo game info",
 				args: { body: res.body }
 			});
-			return { success: false };
+			return {
+				success: false,
+				message: app.HoyoLab.errorMessage(this.#instance.name, res.body.retcode) || res.body.message || "Failed to fetch Mimo game info"
+			};
 		}
 
 		// Handle different response structures for Genshin vs other games
@@ -167,7 +170,10 @@ module.exports = class TravelingMimo {
 				message: "Failed to fetch Mimo tasks",
 				args: { body: res.body }
 			});
-			return { success: false };
+			return {
+				success: false,
+				message: app.HoyoLab.errorMessage(this.#instance.name, res.body.retcode) || res.body.message || "Failed to fetch Mimo tasks"
+			};
 		}
 
 		return {
@@ -258,7 +264,10 @@ module.exports = class TravelingMimo {
 				message: "Failed to fetch Mimo shop items",
 				args: { body: res.body }
 			});
-			return { success: false };
+			return {
+				success: false,
+				message: app.HoyoLab.errorMessage(this.#instance.name, res.body.retcode) || res.body.message || "Failed to fetch Mimo shop items"
+			};
 		}
 
 		return {
@@ -320,7 +329,10 @@ module.exports = class TravelingMimo {
 		});
 
 		if (res.statusCode !== 200 || res.body.retcode !== 0) {
-			return { success: false };
+			return {
+				success: false,
+				message: app.HoyoLab.errorMessage(this.#instance.name, res.body.retcode) || res.body.message || "Failed to fetch Mimo lottery info"
+			};
 		}
 
 		return {
@@ -518,6 +530,9 @@ module.exports = class TravelingMimo {
 								results.codesRedeemed.push(drawResult.data.code);
 								app.Logger.info(`${this.#instance.fullName}:Mimo`, `(${accountData.uid}) Redeemed lottery code: ${drawResult.data.code}`);
 							}
+							else {
+								results.errors.push(`Failed to redeem lottery code ${drawResult.data.code}: ${redeemResult.message}`);
+							}
 						}
 						else {
 							results.codesObtained.push(drawResult.data.code);
@@ -545,12 +560,12 @@ module.exports = class TravelingMimo {
 	async getNextRestockTime (accountData) {
 		const gameInfo = await this.getGameInfo(accountData);
 		if (!gameInfo.success) {
-			return { success: false };
+			return { success: false, message: gameInfo.message || "Failed to get Mimo game info" };
 		}
 
 		const shopItems = await this.getShopItems(accountData, gameInfo.data.versionId);
 		if (!shopItems.success) {
-			return { success: false };
+			return { success: false, message: shopItems.message || "Failed to fetch Mimo shop items" };
 		}
 
 		const currencyName = this.#getPremiumCurrencyName();

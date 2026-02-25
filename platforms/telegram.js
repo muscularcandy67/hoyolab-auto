@@ -6,6 +6,10 @@ module.exports = class Telegram extends require("./template.js") {
 
 	handlingCallbackQuery = false;
 
+	/** @type {Map<string, { lines: string[], logo: string|null, timer: NodeJS.Timeout }>} */
+	#notificationBuffer = new Map();
+	static BUFFER_DELAY_MS = 5000;
+
 	static possibleCommands = [
 		"/stamina",
 		"/expedition",
@@ -106,6 +110,115 @@ module.exports = class Telegram extends require("./template.js") {
 		}
 
 		return true;
+	}
+
+	async sendPhoto (photoUrl, caption, options = {}) {
+		if (typeof photoUrl !== "string") {
+			throw new app.Error({
+				message: "Provided photo URL is not a string",
+				args: { photoUrl }
+			});
+		}
+
+		const escapedCaption = (typeof caption === "string")
+			? app.Utils.escapeCharacters(caption)
+			: undefined;
+
+		const res = await app.Got("API", {
+			url: `https://api.telegram.org/bot${this.token}/sendPhoto`,
+			method: "POST",
+			responseType: "json",
+			throwHttpErrors: false,
+			json: {
+				chat_id: this.chatId,
+				photo: photoUrl,
+				caption: escapedCaption,
+				parse_mode: "MarkdownV2",
+				disable_notification: this.disableNotification,
+				...options
+			}
+		});
+
+		if (res.body.ok !== true) {
+			app.Logger.warn("Telegram", {
+				message: "Failed to send photo, falling back to text",
+				args: { body: res.body }
+			});
+
+			// Fallback to text message if photo fails
+			if (escapedCaption) {
+				return await this.send(escapedCaption);
+			}
+
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Queue a notification to be batched with other notifications for the same game/account.
+	 * Messages for the same bufferKey are combined and sent after a short delay.
+	 * @param {string} text - The notification text (unescaped)
+	 * @param {Object} options
+	 * @param {string} options.bufferKey - Grouping key (e.g. "genshin-{uid}")
+	 * @param {string} [options.gameLogo] - Game logo URL to send as photo
+	 * @param {string} [options.gameName] - Game name for the header (e.g. "Genshin Impact")
+	 */
+	sendBuffered (text, options = {}) {
+		const { bufferKey, gameLogo, gameName } = options;
+		if (!bufferKey) {
+			const escapedMessage = app.Utils.escapeCharacters(text);
+			return this.send(escapedMessage);
+		}
+
+		const existing = this.#notificationBuffer.get(bufferKey);
+		if (existing) {
+			clearTimeout(existing.timer);
+			existing.lines.push(text);
+			if (gameLogo && !existing.logo) {
+				existing.logo = gameLogo;
+			}
+			if (gameName && !existing.gameName) {
+				existing.gameName = gameName;
+			}
+		}
+		else {
+			this.#notificationBuffer.set(bufferKey, {
+				lines: [text],
+				logo: gameLogo ?? null,
+				gameName: gameName ?? null,
+				timer: null
+			});
+		}
+
+		const entry = this.#notificationBuffer.get(bufferKey);
+		entry.timer = setTimeout(() => this.#flushBuffer(bufferKey), Telegram.BUFFER_DELAY_MS);
+	}
+
+	async #flushBuffer (bufferKey) {
+		const entry = this.#notificationBuffer.get(bufferKey);
+		if (!entry) {
+			return;
+		}
+
+		this.#notificationBuffer.delete(bufferKey);
+
+		const separator = (entry.lines.length > 1) ? "\n\n———\n\n" : "\n\n";
+		const body = entry.lines.join(separator);
+
+		const combinedText = entry.gameName
+			? `🎮 **${entry.gameName}**\n\n${body}`
+			: body;
+
+		// sendPhoto caption limit is 1024 chars; if exceeded, fall back to sendMessage
+		if (entry.logo && combinedText.length <= 900) {
+			await this.sendPhoto(entry.logo, combinedText);
+		}
+		else {
+			const escapedMessage = app.Utils.escapeCharacters(combinedText);
+			await this.send(escapedMessage);
+		}
 	}
 
 	async handleCommand (data) {

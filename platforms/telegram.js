@@ -211,12 +211,17 @@ module.exports = class Telegram extends require("./template.js") {
 			? `🎮 **${entry.gameName}**\n\n${body}`
 			: body;
 
-		// sendPhoto caption limit is 1024 chars; if exceeded, fall back to sendMessage
-		if (entry.logo && combinedText.length <= 900) {
-			await this.sendPhoto(entry.logo, combinedText);
+		const escapedMessage = app.Utils.escapeCharacters(combinedText);
+		if (entry.logo) {
+			await this.send(escapedMessage, {
+				link_preview_options: {
+					url: entry.logo,
+					prefer_small_media: true,
+					show_above_text: true
+				}
+			});
 		}
 		else {
-			const escapedMessage = app.Utils.escapeCharacters(combinedText);
 			await this.send(escapedMessage);
 		}
 	}

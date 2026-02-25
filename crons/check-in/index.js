@@ -83,11 +83,17 @@ module.exports = {
 					`📝 **Result:** ${message.result}`
 				].join("\n");
 
+				const escapedMessage = app.Utils.escapeCharacters(messageText);
 				if (message.award.icon) {
-					await telegram.sendPhoto(message.award.icon, messageText);
+					await telegram.send(escapedMessage, {
+						link_preview_options: {
+							url: message.award.icon,
+							prefer_small_media: true,
+							show_above_text: true
+						}
+					});
 				}
 				else {
-					const escapedMessage = app.Utils.escapeCharacters(messageText);
 					await telegram.send(escapedMessage);
 				}
 			}
